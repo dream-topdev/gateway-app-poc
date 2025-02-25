@@ -7,6 +7,7 @@ function Navbar() {
       <Link to="/" style={styles.link}>Dashboard</Link>
       <Link to="/products" style={styles.link}>Products</Link>
       <Link to="/orders" style={styles.link}>Orders</Link>
+      <Link to="/auth" style={styles.link}>Auth</Link>
     </nav>
   );
 }

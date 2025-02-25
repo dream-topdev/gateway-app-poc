@@ -1,6 +1,7 @@
 const spApiConfig = {
   region: 'na', // North America region
   refresh_token: process.env.SP_API_REFRESH_TOKEN,
+  sandbox: true, // Enable sandbox mode
   credentials: {
     SELLING_PARTNER_APP_CLIENT_ID: process.env.SP_API_CLIENT_ID,
     SELLING_PARTNER_APP_CLIENT_SECRET: process.env.SP_API_CLIENT_SECRET,

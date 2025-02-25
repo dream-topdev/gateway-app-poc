@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { authenticatedRequest } from '../utils/axiosConfig';
 
 function Orders() {
   const [orders, setOrders] = useState([]);
@@ -12,7 +12,10 @@ function Orders() {
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/sp/orders');
+      const response = await authenticatedRequest({
+        method: 'get',
+        url: 'http://localhost:5000/api/sp/orders'
+      });
       setOrders(response.data);
       setLoading(false);
     } catch (error) {
