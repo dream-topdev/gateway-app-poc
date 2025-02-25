@@ -12,7 +12,7 @@ class AmazonProductsService {
       
       const requestBody = {
         productType: productData.productType, // e.g., "LUGGAGE"
-        condition_type: "new",
+        requirements: 'LISTING_PRODUCT_ONLY',
         attributes: {
           condition_type: [{ value: "new", marketplace_id: marketplaceIds[0] }],
           item_name: [{ value: String(productData.name).substring(0, 200), marketplace_id: marketplaceIds[0], language_tag: "en_US" }],
@@ -95,7 +95,10 @@ class AmazonProductsService {
         },
         body: requestBody
       });
-      return response;
+      console.log(response);
+      console.log(JSON.stringify(requestBody));
+      const product = await this.getProduct(response.sku, sellerId);
+      return product;
     } catch (error) {
       this.handleError('Create Product', error);
     }
@@ -108,8 +111,10 @@ class AmazonProductsService {
       const response = await this.spApi.callAPI({
         operation: 'getListingsItem',
         endpoint: 'listingsItems',
+        query: {
+          marketplaceIds: 'ATVPDKIKX0DER'
+        },
         path: {
-          marketplaceId: 'ATVPDKIKX0DER',
           sku: sku,
           sellerId: sellerId
         }
