@@ -104,19 +104,19 @@ class AmazonProductsService {
     }
   }
 
-  async getProduct(sku, sellerId) {
+  async getProduct(sku, sellerId, marketplaceIds = ['ATVPDKIKX0DER']) {
     try {
       console.log(`Fetching product details for SKU: ${sku}`);
-
+  
       const response = await this.spApi.callAPI({
         operation: 'getListingsItem',
         endpoint: 'listingsItems',
-        query: {
-          marketplaceIds: 'ATVPDKIKX0DER'
-        },
         path: {
-          sku: sku,
-          sellerId: sellerId
+          sellerId: sellerId,
+          sku: sku
+        },
+        query: {
+          marketplaceIds: marketplaceIds.join(',')
         }
       });
       return response;
@@ -124,55 +124,62 @@ class AmazonProductsService {
       this.handleError('Get Product', error);
     }
   }
-
-  async updateProduct(sku, productData, sellerId) {
+  
+  async updateProduct(sku, productData, sellerId, marketplaceIds = ['ATVPDKIKX0DER']) {
     try {
       console.log(`Updating product SKU: ${sku}`);
-
+  
+      const requestBody = {
+        productType: productData.productType,
+        patches: [
+          {
+            op: 'replace',
+            path: '/attributes/item_name',
+            value: [{ value: String(productData.name).substring(0, 200), marketplace_id: marketplaceIds[0], language_tag: 'en_US' }]
+          },
+          {
+            op: 'replace',
+            path: '/attributes/list_price',
+            value: [{
+              value: parseInt(productData.price * 100),
+              currency: 'USD',
+              marketplace_id: marketplaceIds[0]
+            }]
+          }
+        ]
+      };
+  
       const response = await this.spApi.callAPI({
         operation: 'patchListingsItem',
         endpoint: 'listingsItems',
         path: {
-          marketplaceId: 'ATVPDKIKX0DER',
-          sku: sku,
-          sellerId: sellerId
+          sellerId: sellerId,
+          sku: sku
         },
-        body: {
-          productType: productData.productType,
-          patches: [
-            {
-              op: 'replace',
-              path: '/attributes/title',
-              value: productData.name
-            },
-            {
-              op: 'replace',
-              path: '/attributes/list_price',
-              value: {
-                amount: productData.price,
-                currencyCode: 'USD'
-              }
-            }
-          ]
-        }
+        query: {
+          marketplaceIds: marketplaceIds.join(',')
+        },
+        body: requestBody
       });
       return response;
     } catch (error) {
       this.handleError('Update Product', error);
     }
   }
-
-  async deleteProduct(sku, sellerId) {
+  
+  async deleteProduct(sku, sellerId, marketplaceIds = ['ATVPDKIKX0DER']) {
     try {
       console.log(`Deleting product SKU: ${sku}`);
-
+  
       const response = await this.spApi.callAPI({
         operation: 'deleteListingsItem',
         endpoint: 'listingsItems',
         path: {
-          marketplaceId: 'ATVPDKIKX0DER',
-          sku: sku,
-          sellerId: sellerId
+          sellerId: sellerId,
+          sku: sku
+        },
+        query: {
+          marketplaceIds: marketplaceIds.join(',')
         }
       });
       return response;
@@ -180,31 +187,36 @@ class AmazonProductsService {
       this.handleError('Delete Product', error);
     }
   }
-
-  async getInventory(sellerId, marketplaceIds = ['ATVPDKIKX0DER']) {
+  
+  async getProductListings(sellerId, marketplaceIds = ['ATVPDKIKX0DER'], skus = []) {
     try {
-      console.log(`Fetching inventory for seller: ${sellerId}`);
-      let allInventories = [];
-      let nextToken = null;
-
-      do {
+      console.log(`Fetching product listings for seller: ${sellerId}`);
+      const productListings = [];
+  
+      // If no SKUs provided, you’d need a mechanism to fetch them (e.g., from a database or report)
+      if (!skus.length) {
+        throw new Error('No SKUs provided. Please supply a list of SKUs to fetch product listings.');
+      }
+  
+      // Fetch details for each SKU
+      for (const sku of skus) {
         const response = await this.spApi.callAPI({
-          operation: 'getInventorySummaries',
-          endpoint: 'fbaInventory',
+          operation: 'getListingsItem',
+          endpoint: 'listingsItems',
+          path: {
+            sellerId: sellerId,
+            sku: sku
+          },
           query: {
-            marketplaceIds,
-            granularityType: 'Marketplace',
-            granularityId: marketplaceIds[0],
-            nextToken
+            marketplaceIds: marketplaceIds.join(',')
           }
         });
-        allInventories = allInventories.concat(response.inventorySummaries || []);
-        nextToken = response.pagination?.nextToken;
-      } while (nextToken);
-
-      return allInventories;
+        productListings.push(response);
+      }
+  
+      return productListings;
     } catch (error) {
-      this.handleError('Get Inventory', error);
+      this.handleError('Get Product Listings', error);
       throw error;
     }
   }

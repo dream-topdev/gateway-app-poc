@@ -92,10 +92,10 @@ app.delete('/api/sp/products/:sku', async (req, res) => {
   }
 });
 
-app.get('/api/sp/inventory', async (req, res) => {
+app.get('/api/sp/products', async (req, res) => {
   try {
-    const inventory = await amazonProductsService.getInventory(req.sellerId);
-    res.json(inventory);
+    const products = await amazonProductsService.getProductListings(req.sellerId);
+    res.json(products);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
