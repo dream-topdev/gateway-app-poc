@@ -1,37 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { authenticatedRequest } from '../utils/axiosConfig';
-
+import constants from '../../backend/src/config/constants';
 function Products() {
   const [amazonProducts, setAmazonProducts] = useState([]);
   const [newProduct, setNewProduct] = useState({
     name: 'Test Product XYZ',
     price: '29.99',
-    stock: '100',
     productType: 'TOYS_AND_GAMES',
     brand: 'TestBrand',
     manufacturer: 'TestManufacturer Inc.',
-    browseNodeId: '165793011',
+    description: 'A test product description',
     identifierType: 'UPC',
-    identifierValue: '012345678901'
+    identifierValue: '012345678901',
+    suggestedAsin: 'B000000000',
+    sku: ''
   });
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [searchSku, setSearchSku] = useState('Test-product-sku');
+  const initialFetchDone = React.useRef(false);
 
   useEffect(() => {
-    fetchAmazonProducts();
+    if (!initialFetchDone.current) {
+      fetchAmazonProducts();
+      initialFetchDone.current = true;
+    }
   }, []);
 
   const fetchAmazonProducts = async () => {
     try {
       const response = await authenticatedRequest({
         method: 'get',
-        url: 'http://localhost:5000/api/sp/inventory'
+        url: `${constants.API_BASE_URL}/api/sp/products`
       });
-      setAmazonProducts(response.data.payload || []);
+      setAmazonProducts(response.data.items || []);
     } catch (error) {
-      console.error('Error fetching Amazon products:', error);
-      setError('Failed to fetch Amazon products');
+      console.error('Error:', error);
+      setError(error.response?.data?.message || error.message || 'An error occurred');
     }
   };
 
@@ -48,19 +54,20 @@ function Products() {
       setNewProduct({
         name: '',
         price: '',
-        stock: '',
         productType: '',
         brand: '',
         manufacturer: '',
-        browseNodeId: '',
+        description: '',
         identifierType: 'UPC',
-        identifierValue: ''
+        identifierValue: '',
+        suggestedAsin: '',
+        sku: ''
       });
       fetchAmazonProducts();
       alert('Product submitted to Amazon successfully!');
     } catch (error) {
-      console.error('Error creating Amazon product:', error);
-      setError(error.message || 'Error creating product on Amazon');
+      console.error('Error:', error);
+      setError(error.response?.data?.message || error.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -77,8 +84,8 @@ function Products() {
       fetchAmazonProducts();
       setSelectedProduct(null);
     } catch (error) {
-      console.error('Error updating product:', error);
-      setError('Failed to update product');
+      console.error('Error:', error);
+      setError(error.response?.data?.message || error.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -95,19 +102,63 @@ function Products() {
       });
       fetchAmazonProducts();
     } catch (error) {
-      console.error('Error deleting product:', error);
-      setError('Failed to delete product');
+      console.error('Error:', error);
+      setError(error.response?.data?.message || error.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchSku) {
+      fetchAmazonProducts(); // If search is empty, fetch all products
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await authenticatedRequest({
+        method: 'get',
+        url: `http://localhost:5000/api/sp/products/${searchSku}`
+      });
+      setAmazonProducts([response.data]); // Set single product as array
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error.response?.data?.message || error.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (error) return (
+    <div style={{ 
+      backgroundColor: '#ffebee', 
+      padding: '10px', 
+      borderRadius: '4px',
+      marginBottom: '1rem',
+      color: '#c62828'
+    }}>
+      Error: {error}
+    </div>
+  );
 
   return (
     <div style={styles.container}>
       <h2>Amazon Products</h2>
+      
+      <div style={styles.searchForm}>
+        <input
+          type="text"
+          placeholder="Search by SKU"
+          value={searchSku}
+          onChange={(e) => setSearchSku(e.target.value)}
+          style={styles.input}
+        />
+        <button type="submit" style={styles.button} onClick={handleSearch}>Search</button>
+      </div>
+
       <form onSubmit={handleSubmitToAmazon} style={styles.form}>
         <input
           type="text"
@@ -139,9 +190,16 @@ function Products() {
         />
         <input
           type="text"
-          placeholder="Browse Node ID"
-          value={newProduct.browseNodeId}
-          onChange={(e) => setNewProduct({...newProduct, browseNodeId: e.target.value})}
+          placeholder="Description"
+          value={newProduct.description}
+          onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+          style={styles.input}
+        />
+        <input
+          type="text"
+          placeholder="Suggested ASIN"
+          value={newProduct.suggestedAsin}
+          onChange={(e) => setNewProduct({...newProduct, suggestedAsin: e.target.value})}
           style={styles.input}
         />
         <select
@@ -160,16 +218,39 @@ function Products() {
           onChange={(e) => setNewProduct({...newProduct, identifierValue: e.target.value})}
           style={styles.input}
         />
+        <input
+          type="text"
+          placeholder="SKU"
+          value={newProduct.sku}
+          onChange={(e) => setNewProduct({...newProduct, sku: e.target.value})}
+          style={styles.input}
+        />
         <button type="submit" style={styles.button}>Create Amazon Product</button>
       </form>
 
       <div style={styles.productList}>
         <h3>Amazon Products</h3>
-        {amazonProducts.map(product => (
+        {amazonProducts
+          .filter(product => searchSku === '' || (product.sku || '').toLowerCase().includes((searchSku || '').toLowerCase()))
+          .map(product => (
           <div key={product.sku} style={styles.productCard}>
-            <h3>{product.details?.title || product.sku}</h3>
+            <h3>{product.summaries?.[0]?.itemName || product.sku}</h3>
             <p>SKU: {product.sku}</p>
-            <p>Status: {product.status}</p>
+            <p>ASIN: {product.summaries?.[0]?.asin || 'N/A'}</p>
+            <p>Status: {product.issues?.length ? 'Has Issues' : 'Valid'}</p>
+            {product.issues?.length > 0 && (
+              <div style={{ color: 'red', marginBottom: '10px' }}>
+                {product.issues.map((issue, index) => (
+                  <p key={index}>
+                    {issue.severity}: {issue.message}
+                    {issue.enforcements?.actions?.map(action => 
+                      <span key={action.action}> ({action.action})</span>
+                    )}
+                  </p>
+                ))}
+              </div>
+            )}
+            <p>Price: ${product.offers?.[0]?.price?.amount || 'N/A'}</p>
             <button 
               onClick={() => setSelectedProduct(product)}
               style={styles.button}
@@ -192,10 +273,33 @@ function Products() {
             <h3>Edit Product</h3>
             <input
               type="text"
-              value={selectedProduct.details?.title || ''}
+              value={selectedProduct.attributes?.item_name?.[0]?.value || ''}
               onChange={(e) => setSelectedProduct({
                 ...selectedProduct,
-                details: { ...selectedProduct.details, title: e.target.value }
+                attributes: {
+                  ...selectedProduct.attributes,
+                  item_name: [{
+                    value: e.target.value,
+                    language_tag: "en_US",
+                    marketplace_id: "ATVPDKIKX0DER"
+                  }]
+                }
+              })}
+              style={styles.input}
+            />
+            <input
+              type="number"
+              value={(selectedProduct.attributes?.list_price?.[0]?.value / 100) || ''}
+              onChange={(e) => setSelectedProduct({
+                ...selectedProduct,
+                attributes: {
+                  ...selectedProduct.attributes,
+                  list_price: [{
+                    value: Math.round(parseFloat(e.target.value) * 100),
+                    currency: "USD",
+                    marketplace_id: "ATVPDKIKX0DER"
+                  }]
+                }
               })}
               style={styles.input}
             />
@@ -262,6 +366,11 @@ const styles = {
     padding: '2rem',
     borderRadius: '4px',
     minWidth: '300px'
+  },
+  searchForm: {
+    marginBottom: '1rem',
+    display: 'flex',
+    alignItems: 'center'
   }
 };
 

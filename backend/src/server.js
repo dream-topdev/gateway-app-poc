@@ -44,7 +44,8 @@ app.use('/api/sp', authMiddleware);
 // Orders routes
 app.get('/api/sp/orders', async (req, res) => {
   try {
-    const orders = await ordersService.getOrders(req.sellerId);
+    const accessToken = req.headers.authorization.split(' ')[1];
+    const orders = await ordersService.getOrders(req.sellerId, accessToken);
     res.json(orders);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -54,7 +55,12 @@ app.get('/api/sp/orders', async (req, res) => {
 // Products routes
 app.post('/api/sp/products', async (req, res) => {
   try {
-    const product = await amazonProductsService.createProduct(req.body, req.sellerId);
+    const accessToken = req.headers.authorization.split(' ')[1];
+    const product = await amazonProductsService.createProduct(
+      req.body,
+      req.sellerId,
+      accessToken
+    );
     res.json(product);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -64,7 +70,8 @@ app.post('/api/sp/products', async (req, res) => {
 app.get('/api/sp/products/:sku', async (req, res) => {
   try {
     const { sku } = req.params;
-    const product = await amazonProductsService.getProduct(sku, req.sellerId);
+    const accessToken = req.headers.authorization.split(' ')[1];
+    const product = await amazonProductsService.getProductListings(req.sellerId, accessToken, ['ATVPDKIKX0DER'], [sku]);
     res.json(product);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -75,7 +82,8 @@ app.patch('/api/sp/products/:sku', async (req, res) => {
   try {
     const { sku } = req.params;
     const { ...productData } = req.body;
-    const product = await amazonProductsService.updateProduct(sku, productData, req.sellerId);
+    const accessToken = req.headers.authorization.split(' ')[1];
+    const product = await amazonProductsService.updateProduct(sku, productData, req.sellerId, accessToken);
     res.json(product);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -85,7 +93,8 @@ app.patch('/api/sp/products/:sku', async (req, res) => {
 app.delete('/api/sp/products/:sku', async (req, res) => {
   try {
     const { sku } = req.params;
-    const result = await amazonProductsService.deleteProduct(sku, req.sellerId);
+    const accessToken = req.headers.authorization.split(' ')[1];
+    const result = await amazonProductsService.deleteProduct(sku, req.sellerId, accessToken);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -94,7 +103,8 @@ app.delete('/api/sp/products/:sku', async (req, res) => {
 
 app.get('/api/sp/products', async (req, res) => {
   try {
-    const products = await amazonProductsService.getProductListings(req.sellerId);
+    const accessToken = req.headers.authorization.split(' ')[1];
+    const products = await amazonProductsService.getAllProductListings(req.sellerId, accessToken);
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: error.message });

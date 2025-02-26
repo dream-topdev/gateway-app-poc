@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { authenticatedRequest } from '../utils/axiosConfig';
-
+import constants from '../../backend/src/config/constants';
 function Orders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,7 +14,7 @@ function Orders() {
     try {
       const response = await authenticatedRequest({
         method: 'get',
-        url: 'http://localhost:5000/api/sp/orders'
+        url: `${constants.API_BASE_URL}/api/sp/orders`
       });
       setOrders(response.data);
       setLoading(false);

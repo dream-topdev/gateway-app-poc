@@ -14,9 +14,7 @@ class OrdersService {
         operation: 'getOrders',
         endpoint: 'orders',
         query: {
-          MarketplaceIds: ['ATVPDKIKX0DER_SANDBOX'],
-          SellerId: sellerId,
-          CreatedAfter: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+          MarketplaceIds: ['ATVPDKIKX0DER'],
         }
       });
       return response.Orders || [];

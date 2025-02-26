@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
+import config from '../config/api';
 
 function Auth() {
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,7 @@ function Auth() {
 
   const handleCallback = async (spApiCode, sellingPartnerId, state) => {
     try {
-      const response = await axios.get('http://localhost:5000/api/auth/callback', {
+      const response = await axios.get(`${config.API_URL}/api/auth/callback`, {
         params: {
           code: spApiCode,
           selling_partner_id: sellingPartnerId,
@@ -69,7 +70,7 @@ function Auth() {
   const handleAuth = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/auth/url', {
+      const response = await axios.get(`${config.API_URL}/api/auth/url`, {
         params: {
           redirectUrl: 'http://localhost:3000/auth/callback'
         }
